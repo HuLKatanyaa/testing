@@ -1,257 +1,94 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SITTA - Pemesanan Bahan Ajar UT</title>
+    <title>Sistem Bahan Ajar UT - Tugas 3</title>
     
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Vue.js 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     
-    <!-- Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- CSS -->
-    <link rel="stylesheet" href="assets/css/style.css">
-    
-    <!-- Vue.js -->
-    <script src="https://cdn.jsdelivr.net/npm/vue@2.7.14/dist/vue.js"></script>
+    <!-- Styles -->
+    <link rel="stylesheet" href="./assets/css/style.css">
 </head>
 <body>
-
-<div id="app">
-
-    <!-- Header -->
-    <header class="header">
-        <div class="header-inner">
-            <div class="logo-area">
-                <div class="logo-box">UT</div>
-                <div class="logo-text">
-                    <h1>SITTA</h1>
-                    <span>Sistem Pemesanan Bahan Ajar</span>
-                </div>
-            </div>
-            <div class="tab-nav">
-                <button :class="['tab-btn', {active: activeTab === 'stok'}]" @click="activeTab = 'stok'">
-                    <i class="bi bi-box"></i> Stok Bahan Ajar
-                </button>
-                <button :class="['tab-btn', {active: activeTab === 'tracking'}]" @click="activeTab = 'tracking'">
-                    <i class="bi bi-truck"></i> Tracking DO
-                </button>
-            </div>
-            <div class="status-area">
-                <span class="status-badge"><i class="bi bi-circle-fill"></i> Online</span>
-            </div>
-        </div>
-    </header>
-
-    <!-- Banner -->
-    <section class="banner">
-        <div class="banner-inner">
-            <h2 v-if="activeTab === 'stok'">Kelola Stok Bahan Ajar</h2>
-            <h2 v-else>Tracking Delivery Order</h2>
-            <p>Universitas Terbuka - Sistem Informasi Transaction</p>
-        </div>
-    </section>
-
-    <!-- Main -->
-    <main class="main">
+    <div id="app">
         <div class="container">
+            <header>
+                <h1><i class="fas fa-university"></i> Universitas Terbuka</h1>
+                <p>Sistem Pemesanan & Stok Bahan Ajar</p>
+            </header>
             
-            <!-- Loading -->
-            <div v-if="loading" class="state-box">
-                <div class="spinner"></div>
-                <p>Memuat data...</p>
-            </div>
+            <nav>
+                <button 
+                    @click="changeView('stok')" 
+                    :class="{ active: currentView === 'stok' }">
+                    <i class="fas fa-book"></i> Stok Bahan Ajar
+                </button>
+                <button 
+                    @click="changeView('tracking')" 
+                    :class="{ active: currentView === 'tracking' }">
+                    <i class="fas fa-truck"></i> Tracking DO
+                </button>
+            </nav>
 
-            <!-- Content: STOK -->
-            <div v-else-if="activeTab === 'stok'" class="stok-section">
-                
-                <!-- Filter Bar -->
-                <div class="filter-bar">
-                    <div class="filter-group">
-                        <label>UT-Daerah:</label>
-                        <select v-model="filter.upbjj" @change="loadKategoriOptions">
-                            <option value="">Semua</option>
-                            <option v-for="u in masterData.upbjjList" :key="u" :value="u">{{ u }}</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label>Kategori:</label>
-                        <select v-model="filter.kategori">
-                            <option value="">Semua</option>
-                            <option v-for="k in filteredKategoriList" :key="k" :value="k">{{ k }}</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label>Status Stok:</label>
-                        <select v-model="filter.status">
-                            <option value="">Semua</option>
-                            <option value="reorder">Perlu Re-order (qty &lt; safety)</option>
-                            <option value="kosong">Kosong (qty = 0)</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label>Urutkan:</label>
-                        <select v-model="filter.sortBy">
-                            <option value="kode">Kode</option>
-                            <option value="judul">Judul</option>
-                            <option value="qty">Stok</option>
-                            <option value="harga">Harga</option>
-                        </select>
-                    </div>
-                    <button class="btn-reset" @click="resetFilter">
-                        <i class="bi bi-arrow-counterclockwise"></i> Reset
-                    </button>
+            <main>
+                <!-- Error Message -->
+                <div v-if="errorMessage" style="background: #fadbd8; color: #c0392b; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <i class="fas fa-exclamation-circle"></i> {{ errorMessage }}
                 </div>
 
-                <!-- Add Form -->
-                <div class="add-form">
-                    <h4><i class="bi bi-plus-circle"></i> Tambah Bahan Ajar Baru</h4>
-                    <div class="add-form-grid">
-                        <input type="text" v-model="newBuku.kode" placeholder="Kode *" @keyup.enter="addBuku">
-                        <input type="text" v-model="newBuku.judul" placeholder="Judul *" @keyup.enter="addBuku">
-                        <select v-model="newBuku.kategori">
-                            <option value="">Kategori *</option>
-                            <option v-for="k in masterData.kategoriList" :value="k">{{ k }}</option>
-                        </select>
-                        <select v-model="newBuku.upbjj">
-                            <option value="">UT-Daerah *</option>
-                            <option v-for="u in masterData.upbjjList" :value="u">{{ u }}</option>
-                        </select>
-                        <input type="text" v-model="newBuku.lokasiRak" placeholder="Lokasi Rak">
-                        <input type="number" v-model="newBuku.harga" placeholder="Harga *" @keyup.enter="addBuku">
-                        <input type="number" v-model="newBuku.qty" placeholder="Jumlah Stok" @keyup.enter="addBuku">
-                        <input type="number" v-model="newBuku.safety" placeholder="Safety Stok" @keyup.enter="addBuku">
-                        <input type="text" v-model="newBuku.catatanHTML" placeholder="Catatan">
-                        <button class="btn-add" @click="addBuku">
-                            <i class="bi bi-save"></i> Simpan (Enter)
-                        </button>
-                    </div>
+                <!-- Loading State -->
+                <div v-if="isLoading" class="empty-state">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 3rem; color: var(--primary-color);"></i>
+                    <p>Memuat data...</p>
                 </div>
 
-                <!-- Table -->
-                <div class="card">
-                    <div class="table-wrap">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th @click="filter.sortBy = 'kode'" class="sortable">Kode <i class="bi bi-arrow-down-up"></i></th>
-                                    <th @click="filter.sortBy = 'judul'" class="sortable">Nama Mata Kuliah <i class="bi bi-arrow-down-up"></i></th>
-                                    <th>Kategori</th>
-                                    <th>UT-Daerah</th>
-                                    <th>Lokasi</th>
-                                    <th @click="filter.sortBy = 'harga'" class="sortable">Harga <i class="bi bi-arrow-down-up"></i></th>
-                                    <th @click="filter.sortBy = 'qty'" class="sortable">Stok <i class="bi bi-arrow-down-up"></i></th>
-                                    <th>Safety</th>
-                                    <th>Status</th>
-                                    <th>Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-for="(buku, index) in filteredStok" :key="buku.kode">
-                                    <td><span class="kode-badge">{{ buku.kode }}</span></td>
-                                    <td>
-                                        <div class="judul-text">{{ buku.judul }}</div>
-                                        <div class="rak-text">{{ buku.lokasiRak }}</div>
-                                    </td>
-                                    <td><span class="kategori-badge">{{ buku.kategori }}</span></td>
-                                    <td>{{ buku.upbjj }}</td>
-                                    <td>{{ buku.lokasiRak }}</td>
-                                    <td class="harga-text">{{ formatRupiah(buku.harga) }}</td>
-                                    <td>{{ buku.qty }} buah</td>
-                                    <td>{{ buku.safety }} buah</td>
-                                    <td>
-                                        <span 
-                                            class="status-badge" 
-                                            :class="getStatusClass(buku.qty, buku.safety)"
-                                            :title="buku.catatanHTML">
-                                            <i :class="getStatusIcon(buku.qty, buku.safety)"></i>
-                                            {{ getStatusText(buku.qty, buku.safety) }}
-                                        </span>
-                                    </td>
-                                    <td class="aksi-col">
-                                        <button class="btn-edit" @click="editBuku(buku)" title="Edit">
-                                            <i class="bi bi-pencil"></i>
-                                        </button>
-                                        <button class="btn-delete" @click="confirmDelete(buku)" title="Hapus">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+                <!-- Komponen Stok -->
+                <stock-table 
+                    v-if="currentView === 'stok' && !isLoading"
+                    :raw-data="bahanAjarData" 
+                    :upbjj-list="meta.upbjjList"
+                    :kategori-list="meta.kategoriList"
+                    @add-new="openForm"
+                    @edit-item="openForm"
+                    @delete-item="deleteItem"
+                >
+                </stock-table>
 
-            <!-- Content: TRACKING -->
-            <div v-else-if="activeTab === 'tracking'" class="tracking-section">
-                
-                <!-- Search Form -->
-                <div class="card search-card">
-                    <h4><i class="bi bi-search"></i> Lacak Delivery Order</h4>
-                    <div class="search-form">
-                        <input 
-                            type="text" 
-                            v-model="trackingSearch.query" 
-                            placeholder="Cari berdasarkan NO DO atau NIM..."
-                            @keyup.enter="searchTracking"
-                            @keyup.esc="resetTrackingSearch">
-                        <button class="btn-search" @click="searchTracking">
-                            <i class="bi bi-search"></i> Cari (Enter)
-                        </button>
-                        <button class="btn-reset-search" @click="resetTrackingSearch">
-                            <i class="bi bi-x-lg"></i> Reset (Esc)
-                        </button>
-                    </div>
-                </div>
+                <!-- Komponen Tracking -->
+                <do-tracking 
+                    v-if="currentView === 'tracking' && !isLoading"
+                    :tracking-data="trackingData"
+                    :last-sequence="lastDoSequence"
+                    @create-do="handleCreateDo"
+                >
+                </do-tracking>
+            </main>
 
-                <!-- Tracking Result -->
-                <div v-if="trackingResult" class="card result-card">
-                    <div class="result-header">
-                        <h4>Nomor DO: {{ trackingResult.nomorDO }}</h4>
-                        <span class="status-badge" :class="getTrackingStatusClass(trackingResult.status)">
-                            {{ trackingResult.status }}
-                        </span>
-                    </div>
-                    <div class="result-detail">
-                        <p><strong>NIM:</strong> {{ trackingResult.nim }}</p>
-                        <p><strong>Nama:</strong> {{ trackingResult.nama }}</p>
-                        <p><strong>Ekspedisi:</strong> {{ trackingResult.ekspedisi }}</p>
-                        <p><strong>Tanggal Kirim:</strong> {{ trackingResult.tanggalKirim }}</p>
-                        <p><strong>Total:</strong> {{ formatRupiah(trackingResult.total) }}</p>
-                    </div>
-                    <div class="timeline">
-                        <h5>Riwayat Perjalanan</h5>
-                        <div v-for="(p, idx) in trackingResult.perjalanan" :key="idx" class="timeline-item">
-                            <div class="timeline-dot"></div>
-                            <div class="timeline-content">
-                                <strong>{{ p.waktu }}</strong>
-                                <p>{{ p.keterangan }}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <!-- Modal -->
+            <app-modal v-if="showModal" @close="showModal = false">
+                <order-form 
+                    :is-edit="isEditing"
+                    :initial-data="formData"
+                    @save="saveItem"
+                    @cancel="showModal = false"
+                >
+                </order-form>
+            </app-modal>
+        </div>
+    </div>
 
-                <!-- Add DO Form -->
-                <div class="card add-do-card">
-                    <h4><i class="bi bi-plus-circle"></i> Tambah Delivery Order Baru</h4>
-                    <div class="add-do-form">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>NIM *</label>
-                                <input type="text" v-model="newDO.nim" placeholder="Masukkan NIM" @keyup.enter="addDO">
-                            </div>
-                            <div class="form-group">
-                                <label>Nama *</label>
-                                <input type="text" v-model="newDO.nama" placeholder="Masukkan Nama" @keyup.enter="addDO">
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Paket</label>
-                                <select v-model="newDO.paket">
-                                    <option value="PAK
+    <!-- Scripts -->
+    <script src="./js/services/api.js"></script>
+    <script src="./js/components/app-modal.js"></script>
+    <script src="./js/components/stock-table.js"></script>
+    <script src="./js/components/order-form.js"></script>
+    <script src="./js/components/do-tracking.js"></script>
+    <script src="./js/app.js"></script>
+</body>
+</html>
